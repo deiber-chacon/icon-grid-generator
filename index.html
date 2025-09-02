@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Icon Grid Image Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+    xintegrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5gI9kLmbG4dGxdGILSgDqiTQQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-900 text-slate-200">
+
+  <div class="flex flex-col lg:flex-row min-h-screen">
+    <!-- CONTROLS PANEL -->
+    <div class="w-full lg:w-96 bg-slate-800/50 p-6 lg:p-8 space-y-6 lg:overflow-y-auto">
+      <header>
+        <h1 class="text-2xl font-bold text-white">Icon Grid Generator</h1>
+      </header>
+
+      <!-- Icon Uploader -->
+      <div>
+        <h2 class="text-lg font-semibold mb-3 text-white">1. Upload Icons (SVG, WEBP, AVIF)</h2>
+        <label for="icon-uploader"
+          class="w-full cursor-pointer bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 block text-center">
+          Click to Upload
+        </label>
+        <input type="file" id="icon-uploader" multiple accept="image/svg+xml,image/webp,image/avif" class="hidden">
+        <p class="text-xs text-slate-400 mt-2">You can select multiple SVG, WEBP, or AVIF files.</p>
+      </div>
+
+
+      <!-- Customization -->
+      <div>
+        <h2 class="text-lg font-semibold mb-3 text-white">2. Customize</h2>
+        <div class="space-y-4">
+          <!-- Background Color -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Fallback Color</label>
+            <div class="relative">
+              <input type="color" id="bg-color" value="#FBE9DC"
+                class="p-1 h-10 w-full block bg-slate-700 border border-slate-600 cursor-pointer rounded-lg disabled:opacity-50 disabled:pointer-events-none">
+            </div>
+          </div>
+          <!-- Border Radius -->
+          <div>
+            <label for="border-radius" class="block text-sm font-medium text-slate-300 mb-1">Border Radius (px)</label>
+            <input type="range" id="border-radius" min="0" max="100" value="6"
+              class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button id="download-btn"
+            class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 px-4 rounded-md transition-colors duration-200">
+            Download PNG
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREVIEW AREA -->
+    <div class="flex-1 flex items-center justify-center p-6 bg-slate-900">
+      <div id="preview-wrapper" class="w-full max-w-lg">
+        <div id="image-preview"
+          class="w-full aspect-square flex items-center justify-center transition-all duration-200 bg-cover bg-center">
+          <!-- Grid of icons will be injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const iconUploader = document.getElementById('icon-uploader');
+      const imagePreview = document.getElementById('image-preview');
+      const bgColorInput = document.getElementById('bg-color');
+      const borderRadiusInput = document.getElementById('border-radius');
+      const downloadBtn = document.getElementById('download-btn');
+
+      let selectedIcons = [];
+
+      // --- FUNCTIONS ---
+      const renderPreview = () => {
+        // Update background
+        imagePreview.style.backgroundColor = bgColorInput.value;
+
+        // Update border radius
+        imagePreview.style.borderRadius = `${borderRadiusInput.value}px`;
+
+        // Clear previous icons
+        imagePreview.innerHTML = '';
+
+        if (selectedIcons.length === 0) return;
+
+        // Create and configure icon grid container
+        const gridContainer = document.createElement('div');
+        gridContainer.className = 'flex flex-wrap items-center justify-center p-10 w-full';
+
+        const iconCount = selectedIcons.length;
+        const columns = Math.min(iconCount, 4);
+        const rows = Math.ceil(iconCount / columns);
+
+        const iconSize = 100 / Math.max(columns, rows);
+
+        selectedIcons.forEach(iconData => {
+          const iconWrapper = document.createElement('div');
+          iconWrapper.className = 'flex items-center justify-center gap-16';
+          iconWrapper.style.width = `${100 / columns}%`;
+          iconWrapper.style.padding = '10px';
+
+          const iconEl = document.createElement('div');
+
+          // Check if icon data is SVG string or an image Data URL
+          if (iconData.trim().startsWith('<svg')) {
+            iconEl.innerHTML = iconData;
+            const svg = iconEl.querySelector('svg');
+            if (svg) {
+              svg.setAttribute('width', '100%');
+              svg.setAttribute('height', '100%');
+            }
+          } else if (iconData.startsWith('data:image/')) {
+            const img = document.createElement('img');
+            img.src = iconData;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'contain';
+            iconEl.appendChild(img);
+          }
+
+          iconWrapper.appendChild(iconEl);
+          gridContainer.appendChild(iconWrapper);
+        });
+
+        imagePreview.appendChild(gridContainer);
+      };
+
+      const downloadImage = () => {
+        // Temporarily remove shadow for capture
+        imagePreview.classList.add('shadow-none');
+
+        html2canvas(imagePreview, {
+          backgroundColor: null, // Use the element's background
+          width: 512,
+          height: 512,
+          scale: 2 // Higher scale for better quality
+        }).then(canvas => {
+          const link = document.createElement('a');
+          link.download = 'icon-grid.png';
+          link.href = canvas.toDataURL('image/png');
+          link.click();
+
+          // Restore shadow
+          imagePreview.classList.remove('shadow-none');
+        });
+      };
+
+      // --- EVENT LISTENERS ---
+      iconUploader.addEventListener('change', (e) => {
+        const files = e.target.files;
+        const filesArray = Array.from(files);
+        if (!filesArray.length) return;
+
+        let filesRead = 0;
+        selectedIcons = []; // Reset on new upload
+
+        filesArray.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            selectedIcons.push(event.target.result);
+            filesRead++;
+
+            console.log(`Loaded ${filesRead}/${filesArray.length} files`);
+
+            if (filesRead === filesArray.length) {
+              renderPreview();
+            }
+          };
+
+          if (file.type === 'image/svg+xml') {
+            reader.readAsText(file);
+          } else if (file.type === 'image/webp' || file.type === 'image/avif') {
+            reader.readAsDataURL(file);
+          }
+        });
+        
+        e.target.value = null; // Reset file input
+      });
+
+      [bgColorInput, borderRadiusInput].forEach(input => {
+        input.addEventListener('input', renderPreview);
+      });
+
+      downloadBtn.addEventListener('click', downloadImage);
+
+      // --- INITIALIZATION ---
+      renderPreview();
+    });
+  </script>
+</body>
+
+</html>
