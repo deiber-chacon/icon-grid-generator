@@ -46,7 +46,8 @@
         <div class="space-y-4">
           <!-- Background Color -->
           <div>
-            <label class="block text-sm font-medium text-slate-300 mb-1">Fallback Color</label>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Fallback Color (<span id="bg-color-value"
+                class="uppercase">#FBE9DC</span>)</label>
             <div class="relative">
               <input type="color" id="bg-color" value="#FBE9DC"
                 class="p-1 h-10 w-full block bg-slate-700 border border-slate-600 cursor-pointer rounded-lg disabled:opacity-50 disabled:pointer-events-none">
@@ -54,9 +55,28 @@
           </div>
           <!-- Border Radius -->
           <div>
-            <label for="border-radius" class="block text-sm font-medium text-slate-300 mb-1">Border Radius (px)</label>
+            <label for="border-radius" class="block text-sm font-medium text-slate-300 mb-1">Border Radius (<span
+                id="border-radius-value">6</span>px)</label>
             <input type="range" id="border-radius" min="0" max="100" value="6"
               class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+          </div>
+          <!-- Alignment -->
+          <div>
+            <label class="block text-sm font-medium text-slate-300 mb-1">Alignment</label>
+            <div class="flex space-x-4">
+              <label class="inline-flex items-center">
+                <input type="radio" name="alignment" value="start" class="mr-2">
+                Left
+              </label>
+              <label class="inline-flex items-center">
+                <input type="radio" name="alignment" value="center" class="mr-2" checked>
+                Center
+              </label>
+              <label class="inline-flex items-center">
+                <input type="radio" name="alignment" value="end" class="mr-2">
+                Right
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -89,6 +109,7 @@
       const imagePreview = document.getElementById('image-preview');
       const bgColorInput = document.getElementById('bg-color');
       const borderRadiusInput = document.getElementById('border-radius');
+      const alignmentInput = document.querySelectorAll('input[name="alignment"]');
       const downloadBtn = document.getElementById('download-btn');
 
       let selectedIcons = [];
@@ -101,6 +122,10 @@
         // Update border radius
         imagePreview.style.borderRadius = `${borderRadiusInput.value}px`;
 
+        // Display background and border radius values
+        document.getElementById('border-radius-value').textContent = borderRadiusInput.value;
+        document.getElementById('bg-color-value').textContent = bgColorInput.value;
+
         // Clear previous icons
         imagePreview.innerHTML = '';
 
@@ -108,7 +133,9 @@
 
         // Create and configure icon grid container
         const gridContainer = document.createElement('div');
-        gridContainer.className = 'flex flex-wrap items-center justify-center p-10 w-full';
+        const checkedAlignment = document.querySelector('input[name="alignment"]:checked')?.value || 'center';
+
+        gridContainer.className = `flex flex-wrap items-center justify-${checkedAlignment} p-10 w-full`;
 
         const iconCount = selectedIcons.length;
         const columns = Math.min(iconCount, 4);
@@ -183,8 +210,6 @@
             selectedIcons.push(event.target.result);
             filesRead++;
 
-            console.log(`Loaded ${filesRead}/${filesArray.length} files`);
-
             if (filesRead === filesArray.length) {
               renderPreview();
             }
@@ -196,8 +221,12 @@
             reader.readAsDataURL(file);
           }
         });
-        
+
         e.target.value = null; // Reset file input
+      });
+
+      alignmentInput.forEach(radio => {
+        radio.addEventListener('change', renderPreview);
       });
 
       [bgColorInput, borderRadiusInput].forEach(input => {
